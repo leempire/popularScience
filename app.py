@@ -25,11 +25,11 @@ def index():
 
 def validate_and_consume_code(code):
     """验证授权码并消费它（从文件中删除）"""
-    if not os.path.exists('code.txt'):
+    if not os.path.exists('data/code.txt'):
         return False
     
     # 读取所有授权码
-    with open('code.txt', 'r', encoding='utf-8') as f:
+    with open('data/code.txt', 'r', encoding='utf-8') as f:
         codes = [line.strip() for line in f.readlines() if line.strip()]
     
     # 检查授权码是否存在
@@ -40,7 +40,7 @@ def validate_and_consume_code(code):
     codes.remove(code)
     
     # 写回文件
-    with open('code.txt', 'w', encoding='utf-8') as f:
+    with open('data/code.txt', 'w', encoding='utf-8') as f:
         for c in codes:
             f.write(c + '\n')
     

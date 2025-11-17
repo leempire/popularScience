@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科普文章生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .articles {
+            margin-top: 30px;
+        }
+        .articles h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .article-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .article-list li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .article-list li a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .article-list li a:hover {
+            text-decoration: underline;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        }
+        .success {
+            background-color: #28a745;
+        }
+        .error {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>科普文章生成器</h1>
+        
+        <div class="form-group">
+            <label for="topic">请输入科普主题：</label>
+            <input type="text" id="topic" name="topic" placeholder="例如：人工智能、量子力学、基因编辑等">
+        </div>
+        <div class="form-group">
+            <label for="code">请输入授权码：</label>
+            <input type="text" id="code" name="code" placeholder="请输入您的授权码">
+        </div>
+        <button onclick="generateArticle()">生成科普文章</button>
+        
+        <div class="articles">
+            <h2>已有文章</h2>
+            {% if files %}
+                <ul class="article-list">
+                    {% for file in files %}
+                        <li><a href="/article/{{ file }}" target="_blank">{{ file[:-5] }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>暂无文章，请先生成一篇科普文章。</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+    
+    <script>
+        function showNotification(message, isSuccess) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification ' + (isSuccess ? 'success' : 'error');
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        function generateArticle() {
+            const topic = document.getElementById('topic').value.trim();
+            const code = document.getElementById('code').value.trim();
+            
+            if (!topic) {
+                showNotification('请输入科普主题！', false);
+                return;
+            }
+            
+            if (!code) {
+                showNotification('请输入授权码！', false);
+                return;
+            }
+            
+            fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'topic=' + encodeURIComponent(topic) + '&code=' + encodeURIComponent(code)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('文章生成任务已启动，授权码已使用，请在2分钟后刷新页面查看结果', true);
+                    // 清空输入框
+                    document.getElementById('topic').value = '';
+                    document.getElementById('code').value = '';
+                    // // 3秒后刷新页面
+                    // setTimeout(() => {
+                    //     location.reload();
+                    // }, 3000);
+                } else {
+                    showNotification(data.error || '生成失败', false);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('请求失败，请重试', false);
+            });
+        }
+    </script>
+</body>
+</html>

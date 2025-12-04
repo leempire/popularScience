@@ -160,14 +160,13 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showNotification('文章生成任务已启动，授权码已使用，请在2分钟后刷新页面查看结果', true);
+                    showNotification('文章生成任务已启动，授权码已使用', true);
                     // 清空输入框
                     document.getElementById('topic').value = '';
                     document.getElementById('code').value = '';
-                    // // 3秒后刷新页面
-                    // setTimeout(() => {
-                    //     location.reload();
-                    // }, 3000);
+                    
+                    // 开始轮询检查生成状态
+                    checkGenerationStatus(data.task_id, topic);
                 } else {
                     showNotification(data.error || '生成失败', false);
                 }
@@ -176,6 +175,31 @@
                 console.error('Error:', error);
                 showNotification('请求失败，请重试', false);
             });
+        }
+        
+        function checkGenerationStatus(taskId, topic) {
+            // 每2秒检查一次生成状态
+            const interval = setInterval(() => {
+                fetch(`/status/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'completed') {
+                        clearInterval(interval);
+                        showNotification(`文章《${topic}》已生成完成！您可以刷新页面查看结果。`, true);
+                    } else if (data.status === 'failed') {
+                        clearInterval(interval);
+                        showNotification(`文章生成失败: ${data.message}`, false);
+                    } else if (data.status === 'not_found') {
+                        clearInterval(interval);
+                        showNotification('任务不存在', false);
+                    }
+                    // 如果还在处理中，继续轮询
+                })
+                .catch(error => {
+                    console.error('Error checking status:', error);
+                    // 继续轮询，即使出现错误
+                });
+            }, 2000);
         }
     </script>
 </body>

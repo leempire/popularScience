@@ -7,7 +7,10 @@
 import os
 import sys
 import uuid
+import json
+from datetime import datetime, timedelta
 path = 'data/code.txt'
+monthly_codes_path = 'data/monthly_codes.json'
 
 def add_codes(count=5):
     """添加指定数量的授权码到data/code.txt文件"""
@@ -60,6 +63,43 @@ def add_specific_code(code):
         f.write(code + '\n')
     print(f"已成功添加授权码: {code}")
 
+def add_monthly_code(code=None):
+    """添加包月会员code，有效期一个月，每天可以使用10次"""
+    # 如果没有提供code，则生成一个
+    if not code:
+        code = f"MONTHLY-{str(uuid.uuid4())[:8].upper()}"
+    
+    # 确保data目录存在
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    
+    # 读取现有的包月会员信息
+    monthly_codes = {}
+    if os.path.exists(monthly_codes_path):
+        with open(monthly_codes_path, 'r', encoding='utf-8') as f:
+            monthly_codes = json.load(f)
+    
+    # 设置过期时间为一个月后
+    expiry_date = datetime.now() + timedelta(days=30)
+    
+    # 添加新的包月会员信息
+    monthly_codes[code] = {
+        "expiry_date": expiry_date.isoformat(),
+        "daily_limit": 10,
+        "usage_today": 0,
+        "last_used_date": datetime.now().date().isoformat()
+    }
+    
+    # 保存到文件
+    with open(monthly_codes_path, 'w', encoding='utf-8') as f:
+        json.dump(monthly_codes, f, ensure_ascii=False, indent=2)
+    
+    print(f"已成功添加包月会员授权码: {code}")
+    print(f"有效期至: {expiry_date.strftime('%Y-%m-%d')}")
+    print(f"每日使用限制: 10次")
+    
+    return code
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "--add":
@@ -77,15 +117,33 @@ if __name__ == "__main__":
                     print(f"  {code}")
             else:
                 print("data/code.txt 文件不存在")
+        elif sys.argv[1] == "--monthly":
+            # 添加包月会员code
+            if len(sys.argv) > 2:
+                add_monthly_code(sys.argv[2])
+            else:
+                add_monthly_code()
+        elif sys.argv[1] == "--list-monthly":
+            # 列出所有包月会员code
+            if os.path.exists(monthly_codes_path):
+                with open(monthly_codes_path, 'r', encoding='utf-8') as f:
+                    monthly_codes = json.load(f)
+                print("当前包月会员授权码:")
+                for code, info in monthly_codes.items():
+                    print(f"  {code} (有效期至: {info['expiry_date'][:10]}, 今日已使用: {info.get('usage_today', 0)}/{info['daily_limit']}次)")
+            else:
+                print("暂无包月会员授权码")
         else:
             try:
                 count = int(sys.argv[1])
                 add_codes(count)
             except ValueError:
                 print("参数错误。使用方法:")
-                print("  python add_code.py          # 添加5个授权码")
-                print("  python add_code.py 10       # 添加10个授权码")
-                print("  python add_code.py --add CODE123  # 添加指定授权码")
-                print("  python add_code.py --list   # 列出所有授权码")
+                print("  python add_code.py              # 添加5个授权码")
+                print("  python add_code.py 10           # 添加10个授权码")
+                print("  python add_code.py --add CODE123      # 添加指定授权码")
+                print("  python add_code.py --list       # 列出所有授权码")
+                print("  python add_code.py --monthly [CODE]   # 添加包月会员授权码")
+                print("  python add_code.py --list-monthly     # 列出所有包月会员授权码")
     else:
         add_codes(5)
